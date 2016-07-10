@@ -2,6 +2,7 @@
 import argparse
 import pathlib
 import yaml
+import os
 import sys
 
 class AutoLintIOError(Exception):
@@ -40,16 +41,13 @@ class AutoLint(object):
 
         if ignore_file is not None:
             ignore_file_path = pathlib.Path.expanduser(ignore_file)
-            if not ifnore_file_path.is_file():
+            if not ignore_file_path.is_file():
                 raise AutoLintIOError(("Expecting a ignore file, but "
                                        "got %s" % ignore_file))
             self.ignore_file = ignore_file_path
 
     def _get_file_list(self):
         pass
-
-
-
 
 
 def get_parser():
@@ -62,6 +60,8 @@ def get_parser():
     parser = argparse.ArgumentParser(description="AutoLinter")
     parser.add_argument("target",
                         help="directory path to be linted",
+                        nargs="?",
+                        default=os.getcwd(),
                         type=str)
     parser.add_argument("-c", "--configuration",
                         help=("path to the autolint configuration, if not "
