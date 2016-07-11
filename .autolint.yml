@@ -18,6 +18,4 @@ langs:
 
 linters:
   pep8:
-    cmd: 'python3'
-    flags:
-      - '-m pep8'
+    cmd: 'pep8'

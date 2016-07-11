@@ -72,12 +72,55 @@ class AutoLint(object):
         with open(str(self.configuration), 'r') as f:
             self.configuration_dict = yaml.safe_load(f)
 
-    def run_linter(self, print_out=True):
+    def run_linter(self, pretty_print=True, print_all=False):
         """Load the configurations and run the linter."""
 
         all_files = self.__get_all_files()
         to_lint_files = self.__remove_ignored_files(all_files)
-        self.__lint(self.__classify_files(to_lint_files))
+        results = self.__lint(self.__classify_files(to_lint_files))
+        return_code = 0
+
+
+        if print_all:
+            for lang, v in results.items():
+                print("%s" % lang)
+                for linter, r in v.items():
+                    print("\t%s" % linter)
+                    for filename, result in r.items():
+                        print('\t\t"%s"' % filename)
+                        print("\t\t\tret:%s\n\t\t\tout:%s\n\t\t\terr:%s" % result)
+                        if result[0] != 0:
+                            return_code = 1
+
+        elif pretty_print:
+            total_files = 0
+            failed_files = 0
+            for lang, v in results.items():
+                print("%s" % lang)
+                lang_total_files = 0
+                lang_failed_files = 0
+                for linter, r in v.items():
+                    linter_total_files = 0
+                    linter_failed_files = 0
+                    print("\t%s" % linter)
+                    for filename, result in r.items():
+                        linter_total_files += 1
+                        if result[0] != 0:
+                            linter_failed_files += 1
+                            print("\t\t%s\n\t\t\t%s\n\t\t\t%s" % (filename,
+                                                                  result[1].decode('utf-8').replace('\n', '\n\t\t\t'),
+                                                                  result[2].decode('utf-8').replace('\n', '\n\t\t\t')))
+                    if len(v) > 1:
+                        print("\t%s: Checked %d files, %d with errors" % (linter, linter_total_files, linter_failed_files))
+                    lang_total_files += linter_total_files
+                    lang_failed_files += linter_failed_files
+                if len(results) > 1:
+                    print("%s: Checked %d files, %d with errors" % (lang, lang_total_files, lang_failed_files))
+                total_files +=lang_total_files
+                failed_files += lang_failed_files
+            print("Checked %d files, %d with errors" % (total_files, failed_files))
+
+        return return_code, results
 
     def __get_all_files(self):
         """Returns a list of all the files in the target directory."""
@@ -102,8 +145,15 @@ class AutoLint(object):
         with open(str(self.ignore_file), 'r') as f:
             spec = pathspec.PathSpec.from_lines('gitignore', f)
 
-        ignore_matches = spec.match_files(all_files)
-        return [x for x in all_files if x not in ignore_matches]
+        return_files = set(all_files)
+        for p in spec.patterns:
+            if p.include is not None:
+                result_files = p.match(all_files)
+                if p.include:
+                    return_files.difference_update(result_files)
+                else:
+                    return_files.update(result_files)
+        return return_files
 
     def __classify_files(self, files):
         """Classify a list of files into languages.
@@ -141,8 +191,11 @@ class AutoLint(object):
         :return TODO
         """
 
+        ret = {}
+
         try:
             for lang, lang_files in files.items():
+                ret[lang] = {}
                 linters = self.configuration_dict['langs'][lang]['linters']
                 for linter in linters:
                     linter_to_run = self.configuration_dict['linters'][linter]
@@ -151,8 +204,8 @@ class AutoLint(object):
                     if 'flags' in linter_to_run:
                         for flag in linter_to_run['flags']:
                             cmd.append(flag)
-                    self.__execute_linter_program(cmd, lang_files)
-
+                    ret[lang][linter] = self.__execute_linter_program(
+                            cmd, lang_files)
 
         except KeyError as e:
             key = e.args[0]
@@ -160,12 +213,14 @@ class AutoLint(object):
                 raise AutoLintConfError('Linter not specified')
             raise AutoLintConfError('Missing "%s" at configuration' % key)
 
+        return ret
+
     @classmethod
     def __execute_linter_program(self, cmd, files):
         """Execute and collect the results of the linter execution on the files.
 
-        There is no timeout here, the method will wait till the execution of cmd
-        returns.
+        There is no timeout here, the method will wait till the execution of
+        cmd returns.
 
         :param cmd, list of str as Popen receives to run a program. The path to
                     the file will be replaced in the list if the keyword
@@ -174,8 +229,8 @@ class AutoLint(object):
         :param files, list of str with the path to the files to be linted.
 
         :return an ordered dict with one entry for each file in the files list,
-                as value it will contain the exit code of the linter, the stdout
-                and the stderr."""
+                as value it will contain the exit code of the linter, the
+                stdout and the stderr."""
 
         ret = collections.OrderedDict()
         need_replace = False
@@ -196,7 +251,6 @@ class AutoLint(object):
             stdout, stderr = p.communicate()
             ret[f] = (p.returncode, stdout, stderr)
 
-        print(ret)
         return ret
 
 
@@ -234,6 +288,7 @@ def get_parser():
     parser.set_defaults(no_ignore=False)
     return parser
 
+
 def main(argv=None):
     args = get_parser().parse_args()
     target = args.target
@@ -258,4 +313,3 @@ def main(argv=None):
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
-
