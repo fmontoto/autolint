@@ -1,0 +1,23 @@
+langs:
+  python:
+    include:
+        - '*.py'
+    linters:
+        - 'pep8'
+  c:
+    include:
+      - '*.c'
+      - '*.h'
+  c++:
+    include:
+      - '*.cpp'
+      - '*.hpp'
+  javascript:
+    include:
+      - '*.js'
+
+linters:
+  pep8:
+    cmd: 'python3'
+    flags:
+      - '-m pep8'

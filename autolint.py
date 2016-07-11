@@ -1,13 +1,32 @@
-
 import argparse
-import pathlib
-import yaml
+import collections
+import fnmatch
 import os
+import pathlib
+import subprocess
 import sys
 
-class AutoLintIOError(Exception):
-    """Exception to be raised on file exceptions."""
+import pathspec
+import yaml
+
+
+class AutoLintError(Exception):
+    """Autolint exceptio base class."""
+
     pass
+
+
+class AutoLintIOError(AutoLintError):
+    """Exception to be raised on file exceptions."""
+
+    pass
+
+
+class AutoLintConfError(Exception):
+    """Exception to be raised on configuration file errors."""
+
+    pass
+
 
 class AutoLint(object):
     """Class to run linters on code"""
@@ -27,27 +46,158 @@ class AutoLint(object):
         self.configuration = None
         self.ignore_file = None
 
-        target_path = pathlib.Path.expanduser(target)
+        target_path = pathlib.Path(target).expanduser()
         if not target_path.is_dir():
             raise AutoLintIOError("Expecting a dir but got %s" % target)
         self.target = target_path
 
         if configuration is not None:
-            configuration_path = pathlib.Path.expanduser(configuration)
+            configuration_path = pathlib.Path(configuration).expanduser()
             if not configuration_path.is_file():
                 raise AutoLintIOError(("Expecting a file as configuration, but "
                                        "got %s" % configuration))
             self.configuration = configuration_path
 
         if ignore_file is not None:
-            ignore_file_path = pathlib.Path.expanduser(ignore_file)
+            ignore_file_path = pathlib.Path(ignore_file).expanduser()
             if not ignore_file_path.is_file():
                 raise AutoLintIOError(("Expecting a ignore file, but "
                                        "got %s" % ignore_file))
             self.ignore_file = ignore_file_path
 
-    def _get_file_list(self):
-        pass
+        self.__load_configuration()
+
+    def __load_configuration(self):
+        """Load the configuration file into a python object."""
+        with open(str(self.configuration), 'r') as f:
+            self.configuration_dict = yaml.safe_load(f)
+
+    def run_linter(self, print_out=True):
+        """Load the configurations and run the linter."""
+
+        all_files = self.__get_all_files()
+        to_lint_files = self.__remove_ignored_files(all_files)
+        self.__lint(self.__classify_files(to_lint_files))
+
+    def __get_all_files(self):
+        """Returns a list of all the files in the target directory."""
+
+        ret_files = []
+        for root, dirs, files in os.walk(str(self.target)):
+            for filename in files:
+                ret_files.append(os.path.join(root, filename))
+        return ret_files
+
+    def __remove_ignored_files(self, all_files):
+        """Remove the files matching a pattern at the ignore file
+
+        :param all_files, list of the files to be removed
+
+        :return a subset of all_files, where all the files matched by an ignore
+                pattern were removed
+        """
+        if self.ignore_file is None:
+            return all_files
+
+        with open(self.ignore_file, 'r') as f:
+            spec = pathspec.PathSpec.from_lines('gitignore', f)
+
+        ignore_matches = spec.match_files(all_files)
+        return [x for x in all_files if x not in ignore_matches]
+
+    def __classify_files(self, files):
+        """Classify a list of files into languages.
+
+        :param files, list of files to be classified.
+
+        :return a dict with an entry per each language found in the directory,
+                excluding ignore files specified. Each entry includes a list of
+                files to be linted.
+                ex. {'c':['src/main.c', 'src/include.h'], 'js':['src/main.js']}
+        """
+
+        ret = {}
+        try:
+            for lang, conf in self.configuration_dict['langs'].items():
+                ret[lang] = set()
+                for pattern in conf['include']:
+                    ret[lang].update(
+                        [f for f in files if fnmatch.fnmatch(f, pattern)])
+                if not ret[lang]:
+                    del ret[lang]
+
+        except KeyError as e:
+            raise AutoLintConfError(("Configuration file, key %s not found"
+                                     % e.args[0]))
+
+        return ret
+
+    def __lint(self, files):
+        """Receive the language and the files and run the linter on them.
+
+        :param files, dictionary with languages as key and a iterable of files
+                      as values.
+
+        :return TODO
+        """
+
+        try:
+            for lang, lang_files in files.items():
+                linters = self.configuration_dict['langs'][lang]['linters']
+                for linter in linters:
+                    linter_to_run = self.configuration_dict['linters'][linter]
+                    cmd = []
+                    cmd.append(linter_to_run['cmd'])
+                    if 'flags' in linter_to_run:
+                        for flag in linter_to_run['flags']:
+                            cmd.append(flag)
+                    self.__execute_linter_program(cmd, lang_files)
+
+
+        except KeyError as e:
+            key = e.args[0]
+            if key == 'linters':
+                raise AutoLintConfError('Linter not specified')
+            raise AutoLintConfError('Missing "%s" at configuration' % key)
+
+    @classmethod
+    def __execute_linter_program(self, cmd, files):
+        """Execute and collect the results of the linter execution on the files.
+
+        There is no timeout here, the method will wait till the execution of cmd
+        returns.
+
+        :param cmd, list of str as Popen receives to run a program. The path to
+                    the file will be replaced in the list if the keyword
+                    '%file_path%' appears, otherwise the path will be append to
+                    the list.
+        :param files, list of str with the path to the files to be linted.
+
+        :return an ordered dict with one entry for each file in the files list,
+                as value it will contain the exit code of the linter, the stdout
+                and the stderr."""
+
+        ret = collections.OrderedDict()
+        need_replace = False
+        for c in cmd:
+            if '%file_path%' in c:
+                need_replace = True
+                break
+
+        for f in files:
+            if need_replace:
+                command = [s.replace('%file_path%', f) for s in cmd]
+            else:
+                command = list(cmd)
+                command.append(f)
+
+            p = subprocess.Popen(command, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+            stdout, stderr = p.communicate()
+            ret[f] = (p.returncode, stdout, stderr)
+
+        print(ret)
+        return ret
 
 
 def get_parser():
@@ -65,7 +215,7 @@ def get_parser():
                         type=str)
     parser.add_argument("-c", "--configuration",
                         help=("path to the autolint configuration, if not "
-                              "provided, target/.autolint will be used. "
+                              "provided, target/..autolint.yml will be used. "
                               "If not found default will be used, if provided "
                               "and not found, an error will be raised."),
                         default=None,
@@ -85,7 +235,23 @@ def get_parser():
 
 def main(argv=None):
     args = get_parser().parse_args()
+    target = args.target
+    if args.no_ignore:
+        ignore_file = None
+    else:
+        if args.ignore is False:
+            os.path.join(target, ".lintignore")
+        else:
+            ignore_file = args.ignore
 
+    if args.configuration is not None:
+        configuration = args.configuration
+    else:
+        configuration = os.path.join(target, ".autolint.yml")
+        if not os.path.isfile(configuration):
+            configuration = None
+
+    AutoLint(target, configuration, ignore_file).run_linter()
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
