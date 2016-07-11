@@ -99,7 +99,7 @@ class AutoLint(object):
         if self.ignore_file is None:
             return all_files
 
-        with open(self.ignore_file, 'r') as f:
+        with open(str(self.ignore_file), 'r') as f:
             spec = pathspec.PathSpec.from_lines('gitignore', f)
 
         ignore_matches = spec.match_files(all_files)
@@ -222,7 +222,8 @@ def get_parser():
                         type=str)
     parser.add_argument("-i", "--ignore",
                         help=("path to the autolint ignore file, if not "
-                              "provided, target/.lintignore will be used."),
+                              "provided, target/.lintignore will be used if"
+                              "present."),
                         default=None,
                         type=str)
     parser.add_argument("--no-ignore",
@@ -239,8 +240,10 @@ def main(argv=None):
     if args.no_ignore:
         ignore_file = None
     else:
-        if args.ignore is False:
-            os.path.join(target, ".lintignore")
+        if args.ignore is None:
+            ignore_file = os.path.join(target, ".lintignore")
+            if not os.path.isfile(ignore_file):
+                ignore_file = None
         else:
             ignore_file = args.ignore
 
