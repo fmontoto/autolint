@@ -2,7 +2,6 @@ import argparse
 import collections
 import fnmatch
 import os
-import pathlib
 import subprocess
 import sys
 
@@ -46,21 +45,21 @@ class AutoLint(object):
         self.configuration = None
         self.ignore_file = None
 
-        target_path = pathlib.Path(target).expanduser()
-        if not target_path.is_dir():
+        target_path = os.path.expanduser(target)
+        if not os.path.isdir(target_path):
             raise AutoLintIOError("Expecting a dir but got %s" % target)
         self.target = target_path
 
         if configuration is not None:
-            configuration_path = pathlib.Path(configuration).expanduser()
-            if not configuration_path.is_file():
+            configuration_path = os.path.expanduser(configuration)
+            if not os.path.isfile(configuration_path):
                 raise AutoLintIOError(("Expecting a file as configuration, but"
                                        " got %s" % configuration))
             self.configuration = configuration_path
 
         if ignore_file is not None:
-            ignore_file_path = pathlib.Path(ignore_file).expanduser()
-            if not ignore_file_path.is_file():
+            ignore_file_path = os.path.expanduser(ignore_file)
+            if not os.path.isfile(ignore_file_path):
                 raise AutoLintIOError(("Expecting a ignore file, but "
                                        "got %s" % ignore_file))
             self.ignore_file = ignore_file_path
@@ -70,7 +69,7 @@ class AutoLint(object):
     def __load_configuration(self):
         """Load the configuration file into a python object."""
 
-        with open(str(self.configuration), 'r') as f:
+        with open(self.configuration, 'r') as f:
             self.configuration_dict = yaml.safe_load(f)
 
     def __pretty_print(self, results):
@@ -187,7 +186,7 @@ class AutoLint(object):
         """
 
         ret_files = []
-        for root, dirs, files in os.walk(str(self.target)):
+        for root, dirs, files in os.walk(self.target):
             for filename in files:
                 ret_files.append(os.path.join(root, filename))
         return ret_files
@@ -204,7 +203,7 @@ class AutoLint(object):
         if self.ignore_file is None:
             return all_files
 
-        with open(str(self.ignore_file), 'r') as f:
+        with open(self.ignore_file, 'r') as f:
             spec = pathspec.PathSpec.from_lines('gitignore', f)
 
         return_files = set(all_files)
