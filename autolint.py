@@ -375,7 +375,7 @@ def get_parser():
     return parser
 
 
-def main(argv=None):
+def main():
     args = get_parser().parse_args()
     target = args.target
     if args.no_ignore:
@@ -395,8 +395,8 @@ def main(argv=None):
         if not os.path.isfile(configuration):
             configuration = None
 
-    AutoLint(target, configuration, ignore_file).run_linter(args.pretty_print,
-                                                            not args.no_print)
+    auto_lint = AutoLint(target, configuration, ignore_file)
+    return auto_lint.run_linter(args.pretty_print, not args.no_print)[0]
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(main())
