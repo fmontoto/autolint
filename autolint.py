@@ -335,6 +335,7 @@ def get_parser():
 
     CONF_FILE = ".autolint"
     parser = argparse.ArgumentParser(description="AutoLinter")
+    printg = parser.add_mutually_exclusive_group()
     parser.add_argument("-c", "--configuration",
                         help=("path to the autolint configuration, if not "
                               "provided, target/..autolint.yml will be used. "
@@ -353,12 +354,24 @@ def get_parser():
                               "--ignore flag to be discarded."),
                         dest='no_ignore',
                         action='store_true')
+    parser.set_defaults(no_ignore=False)
+    printg.add_argument("--no-print",
+                        help=("Do not print anything, flag can not be used "
+                              "with --pretty-print."),
+                        dest='no_print',
+                        action='store_true')
+    printg.set_defaults(no_print=False)
+    printg.add_argument("--pretty-print",
+                        help=("print the output of the linters within a"
+                              "hierarchy of the languages and linters ran."),
+                        dest='pretty_print',
+                        action='store_true')
+    printg.set_defaults(pretty_print=False)
     parser.add_argument("target",
                         help="directory path to be linted",
                         nargs="?",
                         default=os.getcwd(),
                         type=str)
-    parser.set_defaults(no_ignore=False)
     return parser
 
 
@@ -382,7 +395,8 @@ def main(argv=None):
         if not os.path.isfile(configuration):
             configuration = None
 
-    AutoLint(target, configuration, ignore_file).run_linter()
+    AutoLint(target, configuration, ignore_file).run_linter(args.pretty_print,
+                                                            not args.no_print)
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
