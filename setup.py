@@ -7,6 +7,7 @@ import autolint
 with open('requirements.txt', 'r') as f:
     __dependencies__ = f.read().strip().split()
 
+__extra_data__ = {'autolint': [autolint.__conf_file__]}
 __long_description__ = "TODO"
 
 __setup__ = {"name": autolint.__project__,
@@ -17,6 +18,10 @@ __setup__ = {"name": autolint.__project__,
              "description": autolint.__description__,
              "long_description": __long_description__,
              "py_modules": autolint.__py_modules__,
-             "install_requires": __dependencies__
+             "install_requires": __dependencies__,
+             "packages": setuptools.find_packages(),
+             #"package_dir": {"": "autolint"},
+             "package_data": __extra_data__,
+             "entry_points": autolint.__entry_points__
              }
 setuptools.setup(**__setup__)

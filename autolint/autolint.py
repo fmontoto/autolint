@@ -1,12 +1,20 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import argparse
 import collections
 import fnmatch
 import os
+import pkg_resources
 import subprocess
 import sys
 
 import pathspec
 import yaml
+
+
+__conf_file__ = ".autolint.yml"
+__project__ = "autolint"
 
 
 class AutoLintError(Exception):
@@ -57,6 +65,9 @@ class AutoLint(object):
                                        " got %s" % configuration))
             self.configuration = configuration_path
 
+        if self.configuration is None:
+            self.configuration = self.__get_default_conf_path()
+
         if ignore_file is not None:
             ignore_file_path = os.path.expanduser(ignore_file)
             if not os.path.isfile(ignore_file_path):
@@ -65,6 +76,16 @@ class AutoLint(object):
             self.ignore_file = ignore_file_path
 
         self.__load_configuration()
+
+    @staticmethod
+    def __get_default_conf_path():
+        """Get the path to the configuration file installed with the module.
+
+        :return the path to the configuration file installed."""
+        filename = __conf_file__
+        projectname = __project__
+        import pdb; pdb.set_trace()
+        return pkg_resources.resource_filename(projectname, filename)
 
     def __load_configuration(self):
         """Load the configuration file into a python object."""
@@ -332,12 +353,11 @@ def get_parser():
     :return: It returns an argparse.ArgumentParser ready to parse argv
     """
 
-    CONF_FILE = ".autolint"
     parser = argparse.ArgumentParser(description="AutoLinter")
     printg = parser.add_mutually_exclusive_group()
     parser.add_argument("-c", "--configuration",
                         help=("path to the autolint configuration, if not "
-                              "provided, target/..autolint.yml will be used. "
+                              "provided, target/.autolint.yml will be used. "
                               "If not found default will be used, if provided "
                               "and not found, an error will be raised."),
                         default=None,

@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from autolint.autolint import __conf_file__
 
 __author__ = "Francisco Montoto"
 __copyright__ = "Copyright © 2016 Francisco Montoto"
@@ -13,3 +17,7 @@ __updated__ = "2016-07-13"
 __version__ = "0.0.1"
 __py_modules__ = ['autolint']
 
+__conf_file__ = __conf_file__
+__entry_points__ = {'console_scripts': [
+                        'autolint = autolint.autolint:main'
+                    ]}
