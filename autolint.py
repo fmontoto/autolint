@@ -11,7 +11,7 @@ import yaml
 
 
 class AutoLintError(Exception):
-    """Autolint exceptio base class."""
+    """Autolint exception base class."""
 
     pass
 
@@ -192,6 +192,7 @@ class AutoLint(object):
         """
 
         ret = {}
+        lang = ''
 
         try:
             for lang, lang_files in files.items():
@@ -210,7 +211,7 @@ class AutoLint(object):
         except KeyError as e:
             key = e.args[0]
             if key == 'linters':
-                raise AutoLintConfError('Linter not specified')
+                raise AutoLintConfError('Linter not specified for %s' % lang)
             raise AutoLintConfError('Missing "%s" at configuration' % key)
 
         return ret
