@@ -335,11 +335,6 @@ def get_parser():
 
     CONF_FILE = ".autolint"
     parser = argparse.ArgumentParser(description="AutoLinter")
-    parser.add_argument("target",
-                        help="directory path to be linted",
-                        nargs="?",
-                        default=os.getcwd(),
-                        type=str)
     parser.add_argument("-c", "--configuration",
                         help=("path to the autolint configuration, if not "
                               "provided, target/..autolint.yml will be used. "
@@ -358,6 +353,11 @@ def get_parser():
                               "--ignore flag to be discarded."),
                         dest='no_ignore',
                         action='store_true')
+    parser.add_argument("target",
+                        help="directory path to be linted",
+                        nargs="?",
+                        default=os.getcwd(),
+                        type=str)
     parser.set_defaults(no_ignore=False)
     return parser
 
