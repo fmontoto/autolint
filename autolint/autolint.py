@@ -84,7 +84,6 @@ class AutoLint(object):
         :return the path to the configuration file installed."""
         filename = __conf_file__
         projectname = __project__
-        import pdb; pdb.set_trace()
         return pkg_resources.resource_filename(projectname, filename)
 
     def __load_configuration(self):
