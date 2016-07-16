@@ -207,7 +207,7 @@ class AutoLint(object):
         else:
             for v in results.itervalues():
                 for r in v.itervalues():
-                    for result in r.itervalue():
+                    for result in r.itervalues():
                         if result[0] != 0:
                             return 1, results
 
