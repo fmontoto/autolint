@@ -12,7 +12,11 @@ import sys
 import pathspec
 import yaml
 
-from autolint.runners import Runner
+#Python2 support
+try:
+    from autolint.runners import Runner
+except ImportError:
+    from .runners import Runner
 
 __conf_file__ = ".autolint.yml"
 __project__ = "autolint"

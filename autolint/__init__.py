@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from autolint.autolint import __conf_file__
+from .autolint import __conf_file__
 
 __author__ = "Francisco Montoto"
 __copyright__ = "Copyright © 2016 Francisco Montoto"
