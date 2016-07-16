@@ -8,14 +8,28 @@ langs:
     include:
       - '*.c'
       - '*.h'
+    linters:
+      - cpplint
+
   c++:
     include:
       - '*.cpp'
       - '*.hpp'
+    linters:
+      - cpplint
+
   javascript:
     include:
       - '*.js'
+    linters:
+      - jscs
 
 linters:
   pep8:
     cmd: 'pep8'
+
+  cpplint:
+    cmd: 'cpplint.py'
+
+  jscs:
+    cmd: 'jscs'
