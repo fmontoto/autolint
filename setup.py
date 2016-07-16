@@ -17,10 +17,8 @@ __setup__ = {"name": autolint.__project__,
              "url": autolint.__url__,
              "description": autolint.__description__,
              "long_description": __long_description__,
-             "py_modules": autolint.__py_modules__,
              "install_requires": __dependencies__,
              "packages": ['autolint'],
-             #"package_dir": {"autolint": "autolint"},
              "package_data": __extra_data__,
              "entry_points": autolint.__entry_points__
              }

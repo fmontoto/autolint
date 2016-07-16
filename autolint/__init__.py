@@ -15,7 +15,6 @@ __url__ = "https://www.github.com/fmontoto/autolint"
 __status__ = "Development"
 __updated__ = "2016-07-13"
 __version__ = "0.0.1"
-__py_modules__ = ['autolint']
 
 __conf_file__ = __conf_file__
 __entry_points__ = {'console_scripts': [
