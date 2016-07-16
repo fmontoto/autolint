@@ -71,7 +71,7 @@ class AutoLint(object):
             self.configuration = configuration_path
 
         if self.configuration is None:
-            self.configuration = self.__get_default_conf_path()
+            self.configuration = self.get_default_conf_path()
 
         if ignore_file is not None:
             ignore_file_path = os.path.expanduser(ignore_file)
@@ -83,7 +83,7 @@ class AutoLint(object):
         self.__load_configuration()
 
     @staticmethod
-    def __get_default_conf_path():
+    def get_default_conf_path():
         """Get the path to the configuration file installed with the module.
 
         :return the path to the configuration file installed."""
@@ -343,6 +343,12 @@ def get_parser():
                               "present."),
                         default=None,
                         type=str)
+    parser.add_argument("--get-default-conf",
+                        help=("Print the path to the default configuration "
+                              "file and return."),
+                        dest='get_default_conf',
+                        action='store_true')
+    parser.set_defaults(get_default_conf=False)
     parser.add_argument("--no-ignore",
                         help=("do not use a ignore file, this flag makes "
                               "--ignore flag to be discarded."),
@@ -372,6 +378,10 @@ def get_parser():
 def main():
     args = get_parser().parse_args()
     target = args.target
+    if args.get_default_conf:
+        with open(AutoLint.get_default_conf_path(), 'r') as f:
+            print(f.read())
+        return
     if args.no_ignore:
         ignore_file = None
     else:
