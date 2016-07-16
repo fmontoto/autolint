@@ -400,7 +400,8 @@ def main():
             configuration = None
 
     auto_lint = AutoLint(target, configuration, ignore_file)
-    return auto_lint.run_linter(args.pretty_print, not args.no_print)[0]
+    print_all = not(args.no_print or args.pretty_print)
+    return auto_lint.run_linter(args.pretty_print, print_all)[0]
 
 if __name__ == "__main__":
     sys.exit(main())
